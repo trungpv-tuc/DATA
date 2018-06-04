@@ -91,6 +91,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.sql.*;
+
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static org.onlab.util.Tools.groupedThreads;
@@ -461,7 +463,7 @@ public class ReactiveForwarding {
         HashMap<String, String> Switches = new HashMap<String, String>();
         HashMap<String, String> Hosts = new HashMap<String, String>();
 
-        private int valueATF; //Value of ATF to choose the right forwarding scheme
+        private int eATF; //Value of ATF to choose the right forwarding scheme
 
         @Override
         public void process(PacketContext context) {
@@ -495,10 +497,10 @@ public class ReactiveForwarding {
 
                 if (ipv4Packet.getSourceAddress() == ipv4Packet.toIPv4Address("192.168.0.2")){
                     //log.info(" MAC Matching FWD Only is enabled for IP source: {}", matchIp4SrcPrefix.address());
-                    valueATF = 1;
+                    eATF = 1;
                 } else {
                     //log.info(" Full Matching FWD is enabled for IP source: {}", matchIp4SrcPrefix.address());
-                    valueATF = 0;
+                    eATF = 0;
                 }
 
                 if (ipv4Protocol == IPv4.PROTOCOL_TCP) {
@@ -518,12 +520,12 @@ public class ReactiveForwarding {
                 if(Switches.containsKey(pkt.receivedFrom().deviceId().toString()) == false){
                     Switches.put(pkt.receivedFrom().deviceId().toString(), pkt.receivedFrom().deviceId().toString());
                 }
-                Switches.forEach((key, value) -> log.info(" Switch Name: {} and ID: {}", key, value));
+                //Switches.forEach((key, value) -> log.info(" Switch Name: {} and ID: {}", key, value));
                 //Update Hosts maps
                 if(Hosts.containsKey(ethPkt.getDestinationMAC().toString()) == false){
                     Hosts.put(ethPkt.getDestinationMAC().toString(), matchIp4DstPrefix.toString());
                 }
-                Hosts.forEach((key, value) -> log.info(" Hosts MAC: {} and IPv4: {}", key, value));
+                //Hosts.forEach((key, value) -> log.info(" Hosts MAC: {} and IPv4: {}", key, value));
 
             }
  
@@ -577,7 +579,7 @@ public class ReactiveForwarding {
             // simply forward out to the destination and bail.
             if (pkt.receivedFrom().deviceId().equals(dst.location().deviceId())) {
                 if (!context.inPacket().receivedFrom().port().equals(dst.location().port())) {
-                    installRule(context, dst.location().port(), macMetrics, valueATF);
+                    installRule(context, dst.location().port(), macMetrics, eATF);
                 }
                 return;
             }
@@ -609,7 +611,7 @@ public class ReactiveForwarding {
             }
 
             // Otherwise forward and be done with it.
-            installRule(context, path.src().port(), macMetrics, valueATF);
+            installRule(context, path.src().port(), macMetrics, eATF);
         }
 
     }
@@ -657,7 +659,7 @@ public class ReactiveForwarding {
     }
 
     // Install a rule forwarding the packet to the specified port.
-    private void installRule(PacketContext context, PortNumber portNumber, ReactiveForwardMetrics macMetrics, int valueATF) {
+    private void installRule(PacketContext context, PortNumber portNumber, ReactiveForwardMetrics macMetrics, int eATF) {
         //
         // We don't support (yet) buffer IDs in the Flow Service so
         // packet out first.
@@ -677,7 +679,7 @@ public class ReactiveForwarding {
         // Else
         //    Create flows with default matching and include configured fields
         //
-        if (valueATF == 1) {
+        if (eATF == 1) {
             selectorBuilder.matchEthDst(inPkt.getDestinationMAC())
                     .matchEthSrc(inPkt.getSourceMAC());
 
@@ -818,10 +820,23 @@ public class ReactiveForwarding {
 
         public void run(){
             try {
+                
                 while(true) {
                     log.info("Adaptive Traffic Communication Interface is ACTIVE");
                     // Let the thread sleep for a while.
                     Thread.sleep(5000);
+                    try{  
+                        Class.forName("com.mysql.cj.jdbc.Driver");  
+                        Connection con=DriverManager.getConnection("jdbc:mysql://localhost:3306/eATF","root","pvtrung92");  
+                        //here sonoo is database name, root is username and password  
+                        Statement stmt=con.createStatement();  
+                        ResultSet rs=stmt.executeQuery("select * from DCNets");  
+                        while(rs.next())  
+                            log.info("HostID: {}, MAC: {}, IPAdd: {}", rs.getInt("HostID"), rs.getString("MAC"),rs.getString("IPAdd"));  
+                         
+                    }catch(Exception e){ 
+                        log.info("{}",e); 
+                    } 
                 }
             } catch (InterruptedException e) {
                 log.info("Adaptive Traffic Communication Interface is DISABLED");
