@@ -36,7 +36,7 @@ class StatisticCollector(threading.Thread):
 
   def run(self):
   #global servers
-  db = mariadb.connect(user='root', password='pvtrung92', database='eATF')
+  db = MySQLdb.connect("localhost","root","password","Dbname")
   while True:
     url = 'http://localhost:8181/onos/v1/flows/' + self.DeviceID
     headers  = {"Accept": "application/json"}
