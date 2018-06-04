@@ -22,7 +22,7 @@ class Analyzer(threading.Thread):
 
   def run(self):
     #global servers
-    db = MySQLdb.connect("localhost","root","trungpv92","eATF")
+    db = MySQLdb.connect("localhost","root","password","Dbname")
     while True:
       print _Read_DCNets(db, '00:00:00:00:00:00:01', '192.168.0.1')
       time.sleep(3.0)
